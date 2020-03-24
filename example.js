@@ -4,6 +4,7 @@ This example demonstrates how to purchase a label for a domestic shipment.
 
 // replace VANLO_API_KEY with your Vanlo API Key
 var shippo = require('shippo')('VANLO_API_KEY');
+shippo.setHost('beta.vanlo.com', 443, 'https');
 
 var addressFrom  = {
 	"name":"Ms Hippo",

@@ -1,4 +1,5 @@
 var shippo = require('shippo')('VANLO_API_KEY');
+shippo.setHost('beta.vanlo.com', 443, 'https');
 
 shippo.address.create({
 			'name' : 'Mr Hippo',
