@@ -31,7 +31,7 @@ The snippet below demonstrates how to create an address object. Check examples.j
           'phone' : '+1 555 341 9393',
           'email' : 'mrhippo@goshippo.com'
     }).then(function(address){
-      console.log("shipment : %s", JSON.stringify(address));
+      console.log("address : %s", JSON.stringify(address));
     });
 ```
 
