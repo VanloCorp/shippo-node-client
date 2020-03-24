@@ -1,117 +1,66 @@
 /**
-This example demonstrates how to purchase a label for an international shipment.
-Creating domestic shipment would follow a similiar proccess but would not require
-the creation of CustomsItems and CustomsDeclaration objects.
+This example demonstrates how to purchase a label for a domestic shipment.
 **/
 
-
-// replace <YOUR_PRIVATE_KEY> with your ShippoToken key
-var shippo = require('shippo')('<YOUR_PRIVATE_KEY>');
+// replace VANLO_API_KEY with your Vanlo API Key
+var shippo = require('shippo')('VANLO_API_KEY');
 
 var addressFrom  = {
 	"name":"Ms Hippo",
-	"company":"Shippo",
-	"street1":"215 Clayton St.",
+	"company":"Vanlo",
+	"street1":"345 California St.",
+	"city":"San Francisco",
+	"state":"CA",
+	"zip":"94104",
+	"country":"US", //iso2 country code
+	"phone":"1 555 341 9393",
+	"email":"ms-hippo@goshippo.com",
+}
+
+var addressTo = {
+	"name":"Mr Hippo",
+	"street1":"803 Clayton St.",
 	"city":"San Francisco",
 	"state":"CA",
 	"zip":"94117",
 	"country":"US", //iso2 country code
-	"phone":"+1 555 341 9393",
-	"email":"ms-hippo@goshippo.com",
-}
+	"phone":"1 555 341 9394"
+};
 
-// example address_to object dict
-var addressTo = {
-	"name":"Mr Hippo",
-	"company":"London Zoo",
-	"street1":"Regent's Park",
-	"street2":"Outer Cir",
-	"city":"LONDON",
-	"state":"",
-	"zip":"NW1 4RY",
-	"country":"GB", //iso2 country code
-	"phone":"+1 555 341 9393",
-	"email":"mrhippo@goshippo.com",
-	"metadata" : "Hippo T-Shirt Order #1043"
-}
+// VANLO COMPATIBILITY NOTE: Vanlo only supports inches and ounces and the
+// 'distance_unit' and 'mass_unit' params will be ignored.
 
-// parcel object dict
 var parcel = {
-	"length":"5",
+	"length":"6",
 	"width":"5",
-	"height":"5",
+	"height":"4",
 	"distance_unit":"in",
-	"weight":"2",
-	"mass_unit":"lb",
+	"weight":"18",
+	"mass_unit":"oz"
 }
 
-// example CustomsItems object. This is required for int'l shipment only.
-var customsItem = {
-	"description":"T-Shirt",
-	"quantity":2,
-	"net_weight":"0.3",
-	"mass_unit":"lb",
-	"value_amount":"20",
-	"value_currency":"USD",
-	"origin_country":"US",
-}
+shippo.shipment.create({
+	"address_from": addressFrom,
+	"address_to": addressTo,
+	"parcels": [parcel]
+}).then(function(shipment) {
+		console.log("Select a rate and buy a shipping label:");
+		console.log(shipment.rates[0]);
 
-// Creating the CustomsDeclaration
-// (CustomsDeclaration are NOT required for domestic shipments)
-shippo.customsdeclaration.create({
-	"contents_type": "MERCHANDISE",
-	"non_delivery_option": "RETURN",
-	"certify": true,
-	"certify_signer": "Mr. Hippo",
-	"items": [customsItem],
-})
-.then(function(customsDeclaration) {
-	console.log("customs Declaration : %s", JSON.stringify(customsDeclaration, null, 4));
-	// Creating the shipment object. In this example, the objects are directly passed to the
-	// shipment.create method, Alternatively, the Address and Parcel objects could be created
-	// using address.create(..) and parcel.create(..) functions respectively.
-	// adding the async:false makes this call synchronous
-	return shippo.shipment.create({
-		"address_from": addressFrom,
-		"address_to": addressTo,
-		"parcels": [parcel],
-		"customs_declaration": customsDeclaration.object_id,
-		"async": false
-	})
+		shippo.transaction.create({
+			"rate": shipment.rates[0].object_id,
+			"label_file_type": "PNG",
+		}).then(function(transaction) {
+			console.log("Successfully purchased shipping label:");
+			console.log(transaction);
 
+		}, function(err) {
+			console.log("There was an error buying shipment:");
+			console.log(err);
+		});
+    
 }, function(err) {
-	// Deal with an error
-	console.log("There was an error creating customs declaration: %s", err);
-})
-.then(function(shipment) {
-	console.log("shipment : %s", JSON.stringify(shipment, null, 4));
-	shippo.shipment.rates(shipment.object_id)
-	.then(function(rates) {
-		console.log("rates : %s", JSON.stringify(rates, null, 4));
-		// Get the first rate in the rates results for demo purposes.
-		rate = rates.results[0];
-		// Purchase the desired rate
-		return shippo.transaction.create({"rate": rate.object_id, "async": false})
-	}).catch(function(err) {
-		// Deal with an error
-		console.log("There was an error retrieving rates : %s", err);
-	})
-	.then(function(transaction) {
-			console.log("transaction : %s", JSON.stringify(transaction, null, 4));
-			// print label_url and tracking_number
-			if(transaction.status == "SUCCESS") {
-				console.log("Label URL: %s", transaction.label_url);
-				console.log("Tracking Number: %s", transaction.tracking_number);
-			}else{
-				//Deal with an error with the transaction
-				console.log("Message: %s", JSON.stringify(transaction.messages, null, 2));
-			}
-
-	}).catch(function(err) {
-		// Deal with an error
-		console.log("There was an error creating transaction : %s", err);
-	});
-}).catch(function(err) {
-	// Deal with an error
-	console.log("There was an error creating shipment: %s", err);
+    console.log("There was an error creating shipment:");
+		console.log(err);
 });
+

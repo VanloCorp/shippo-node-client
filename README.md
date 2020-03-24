@@ -1,34 +1,24 @@
-# Shippo Node.js API wrapper
-[![npm version](https://badge.fury.io/js/shippo.svg)](https://badge.fury.io/js/shippo)
-[![Build Status](https://travis-ci.org/goshippo/shippo-node-client.svg?branch=add-travis-ci)](https://travis-ci.org/goshippo/shippo-node-client)
+# Vanlo Shippo Compatible API Node.js SDK
 
-Shippo is a shipping API that connects you with [multiple shipping carriers](https://goshippo.com/carriers/) (such as USPS, UPS, DHL, Canada Post, Australia Post, UberRUSH and many others) through one interface.
-
-Print a shipping label in 10 mins using our default USPS and DHL Express accounts. No need to register for a carrier account to get started.
-
-You will need to [register for a Shippo account](https://goshippo.com/) to use the Shippo API. It's free to sign up, free to use the API. Only pay to print a live label, test labels are free.
+Vanlo offers a Shippo Compatible API for customers switching from Shippo to Vanlo.
 
 ## Installation:
 You can install this package by running the follwing command:
 ```shell
-  npm install shippo
+  npm install git+https://github.com/VanloCorp/shippo-node-client
 ```
-This means, you don't actually have to download this repository. If you wish to make modifications to the wrapper, you can clone this repository into your project.
-
-### Requirements:
-The shippo Node.js has no additional dependencies.
 
 ## Usage:
 
-Initialize your `shippo` instance using your `Private Auth Token` provided to you on the `API` page in the Shippo Dashboard.
+Initialize your `shippo` instance using your `Vanlo API Key` provided to you on the `Developers > API Keys` page in the Vanlo Dashboard.
 
 ```js
-    var shippo = require('shippo')('<YOUR_PRIVATE_KEY>');
+    var shippo = require('shippo')('VANLO_API_KEY');
 ```
-The snippet below demonstrates how to create an address object (a Shippo `Resource`). Check examples.js for more detailed example for generating a shipping label:
+The snippet below demonstrates how to create an address object. Check examples.js for more detailed example for generating a shipping label:
 
 ```js
-    var shippo = require('shippo')('<YOUR_PRIVATE_KEY>');
+    var shippo = require('shippo')('VANLO_API_KEY');
 
     shippo.address.create({
           'name' : 'Mr Hippo',
@@ -53,84 +43,70 @@ the creation of CustomsItems and CustomsDeclaration objects.
 
 ```js
 
+var shippo = require('shippo')('VANLO_API_KEY');
+
 var addressFrom  = {
 	"name":"Ms Hippo",
-	"company":"Shippo",
-	"street1":"215 Clayton St.",
+	"company":"Vanlo",
+	"street1":"345 California St.",
 	"city":"San Francisco",
 	"state":"CA",
-	"zip":"94117",
+	"zip":"94104",
 	"country":"US", //iso2 country code
-	"phone":"+1 555 341 9393",
-	"email":"support@goshippo.com",
-};
+	"phone":"1 555 341 9393",
+	"email":"ms-hippo@goshippo.com",
+}
 
-// example address_to object dict
 var addressTo = {
-	"name":"Ms Hippo",
-	"company":"Shippo",
+	"name":"Mr Hippo",
 	"street1":"803 Clayton St.",
 	"city":"San Francisco",
 	"state":"CA",
 	"zip":"94117",
 	"country":"US", //iso2 country code
-	"phone":"+1 555 341 9393",
-	"email":"support@goshippo.com",
+	"phone":"1 555 341 9394"
 };
 
-// parcel object dict
-var parcelOne = {
-	"length":"5",
+// VANLO COMPATIBILITY NOTE: Vanlo only supports inches and ounces and the
+// 'distance_unit' and 'mass_unit' params will be ignored.
+
+var parcel = {
+	"length":"6",
 	"width":"5",
-	"height":"5",
+	"height":"4",
 	"distance_unit":"in",
-	"weight":"2",
-	"mass_unit":"lb"
-};
+	"weight":"18",
+	"mass_unit":"oz"
+}
 
-var parcelTwo = {
-    "length":"5",
-    "width":"5",
-    "height":"5",
-    "distance_unit":"in",
-    "weight":"2",
-    "mass_unit":"lb"
-};
+shippo.shipment.create({
+	"address_from": addressFrom,
+	"address_to": addressTo,
+	"parcels": [parcel]
+}).then(function(shipment) {
+		console.log("Select a rate and buy a shipping label:");
+		console.log(shipment.rates[0]);
 
-var shipment = {
-    "address_from": addressFrom,
-    "address_to": addressTo,
-    "parcels": [parcelOne, parcelTwo],
-};
+		shippo.transaction.create({
+			"rate": shipment.rates[0].object_id,
+			"label_file_type": "PNG",
+		}).then(function(transaction) {
+			console.log("Successfully purchased shipping label:");
+			console.log(transaction);
 
-shippo.transaction.create({
-	"shipment": shipment,
-	"servicelevel_token": "ups_ground",
-	"carrier_account": "558c84bbc25a4f609f9ba02da9791fe4",
-	"label_file_type": "png"
-})
-.then(function(transaction) {
-    shippo.transaction.list({
-      "rate": transaction.rate
-    })
-    .then(function(mpsTransactions) {
-        mpsTransactions.results.forEach(function(mpsTransaction){
-            if(mpsTransaction.status == "SUCCESS") {
-                console.log("Label URL: %s", mpsTransaction.label_url);
-                console.log("Tracking Number: %s", mpsTransaction.tracking_number);
-            } else {
-                // hanlde error transactions
-                console.log("Message: %s", mpsTransactions.messages);
-            }
-        });
-    })
+		}, function(err) {
+			console.log("There was an error buying shipment:");
+			console.log(err);
+		});
+    
 }, function(err) {
-    // Deal with an error
-    console.log("There was an error creating transaction : %s", err.detail);
+    console.log("There was an error creating shipment:");
+		console.log(err);
 });
 ```
 
 ## Tests:
+
 ### Requirements:
 For the test cases the following packages are required:
 ```js
@@ -142,30 +118,9 @@ For the test cases the following packages are required:
 
 ## Credits
 
-This project was influenced by the excellent [stripe-node](https://github.com/stripe/stripe-node).
+This project is a fork of Shippo's official Node.js SDK [Node.js SDK](https://github.com/goshippo/shippo-node-client).
 
 ## Documentation
 
-Please see [https://goshippo.com/docs](https://goshippo.com/docs) for up-to-date documentation.
+Please see [https://shippo-compatible-api-docs.vanlo.com/](https://shippo-compatible-api-docs.vanlo.com/) for documentation.
 
-## About Shippo
-
-Connect with multiple different carriers, get discounted shipping labels, track parcels, and much more with just one integration. You can use your own carrier accounts or take advantage of our discounted rates with the USPS and DHL Express. Using Shippo makes it easy to deal with multiple carrier integrations, rate shopping, tracking and other parts of the shipping workflow. We provide the API and dashboard for all your shipping needs.
-
-## Supported Features
-
-The Shippo API provides in depth support of carrier and shipping functionalities. Here are just some of the features we support through the API:
-
-* Shipping rates & labels
-* Tracking for any shipment with just the tracking number
-* Batch label generation
-* Multi-piece shipments
-* Manifests and SCAN forms
-* Customs declaration and commercial invoicing
-* Address verification
-* Signature and adult signature confirmation
-* Consolidator support including:
-	* DHL eCommerce
-	* UPS Mail Innovations
-	* FedEx Smartpost
-* Additional services: cash-on-delivery, certified mail, delivery confirmation, and more.
